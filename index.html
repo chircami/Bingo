@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bingo en familia</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a237e;
+            --accent: #e53935;
+            --highlight: #2e7d32;
+            --gold: #f9a825;
+            --bg: #e8eaf6;
+            --card-bg: #ffffff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: var(--bg);
+            background-image: radial-gradient(circle at 20% 20%, #c5cae9 0%, transparent 50%),
+                              radial-gradient(circle at 80% 80%, #f8bbd0 0%, transparent 50%);
+            margin: 0;
+            padding: 10px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .page-wrapper {
+            width: 100%;
+            max-width: 640px;
+            flex: 1;
+        }
+
+        /* Screens */
+        .screen { display: none; width: 100%; }
+        .active { display: block; }
+
+        .card {
+            background: var(--card-bg);
+            padding: 28px 24px;
+            border-radius: 20px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2.6rem;
+            color: var(--primary);
+            margin: 0 0 4px 0;
+            letter-spacing: 1px;
+        }
+
+        h2 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.6rem;
+            margin: 0 0 12px 0;
+        }
+
+        /* Main Board Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 5px;
+            margin-top: 18px;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #e8eaf6;
+            font-size: 0.72rem;
+            font-weight: 700;
+            border-radius: 6px;
+            color: #9fa8da;
+            background: #f5f5f5;
+            transition: all 0.3s;
+        }
+
+        .cell.extracted {
+            background: var(--accent) !important;
+            color: white !important;
+            border-color: var(--accent);
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(229,57,53,0.4);
+        }
+
+        #big-number {
+            font-family: 'Fredoka One', cursive;
+            font-size: 110px;
+            color: var(--primary);
+            font-weight: normal;
+            line-height: 1;
+            margin: 10px 0;
+            text-shadow: 4px 4px 0 #c5cae9;
+            transition: transform 0.15s, color 0.15s;
+        }
+
+        #big-number.pop {
+            transform: scale(1.2);
+            color: var(--accent);
+        }
+
+        /* Player rows */
+        .player-row {
+            background: white;
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 6px solid var(--primary);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.07);
+        }
+
+        .qr-box {
+            background: white;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+
+        /* Player Cards */
+        .mobile-card {
+            background: #fff;
+            border: 3px solid var(--primary);
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 28px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+
+        .mobile-card h3 {
+            font-family: 'Fredoka One', cursive;
+            color: var(--primary);
+            margin: 0 0 14px 0;
+            font-size: 1.3rem;
+            font-weight: normal;
+        }
+
+        .grid-5 {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+
+        .num-btn {
+            aspect-ratio: 1;
+            border: 2px solid #c5cae9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.25rem;
+            border-radius: 50%;
+            cursor: pointer;
+            background: #f5f5f5;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        .num-btn.marked {
+            background: var(--highlight);
+            color: white;
+            border-color: var(--highlight);
+            transform: scale(0.92);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        /* Inputs & Buttons */
+        label {
+            display: block;
+            text-align: left;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 14px;
+            margin-bottom: 4px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 14px;
+            margin: 4px 0 8px;
+            border: 2px solid #c5cae9;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: 'Nunito', sans-serif;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 800;
+            width: 100%;
+            font-size: 1.1rem;
+            font-family: 'Nunito', sans-serif;
+            transition: opacity 0.2s, transform 0.1s;
+            margin-top: 8px;
+        }
+
+        button:active { opacity: 0.85; transform: scale(0.98); }
+
+        .btn-draw {
+            background: linear-gradient(135deg, var(--highlight), #43a047);
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.6rem;
+            font-weight: normal;
+            letter-spacing: 1px;
+            box-shadow: 0 5px 0 #1b5e20;
+            margin-top: 12px;
+        }
+
+        .btn-draw:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        .btn-reset {
+            background: #90a4ae;
+            margin-top: 28px;
+            font-size: 0.9rem;
+        }
+
+        /* Footer */
+        footer {
+            width: 100%;
+            max-width: 640px;
+            text-align: center;
+            padding: 18px 10px;
+            color: #5c6bc0;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        footer span { color: var(--accent); font-size: 1.1rem; }
+
+        /* Win / Line Modal */
+        #win-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #win-overlay.show { display: flex; }
+
+        .win-box {
+            background: white;
+            border-radius: 24px;
+            padding: 40px 30px;
+            text-align: center;
+            max-width: 320px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            z-index: 1001;
+        }
+
+        @keyframes bounceIn {
+            from { transform: scale(0.3); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .win-emoji { font-size: 4rem; display: block; margin-bottom: 10px; }
+        .win-title { font-family: 'Fredoka One', cursive; font-size: 2.5rem; color: var(--primary); margin: 0 0 8px 0; }
+        .win-subtitle { font-size: 1rem; color: #666; margin-bottom: 20px; }
+        .win-close {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            cursor: pointer;
+            width: auto;
+        }
+
+        /* Confetti canvas */
+        #confetti-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .balls-left {
+            font-size: 0.85rem;
+            color: #9fa8da;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+    <div id="scr-setup" class="screen active card">
+        <h1 id="t-title">🧑‍🧑‍🧒‍🧒 Bingo digital</h1>
+        <p style="color:#7986cb; margin: 0 0 16px; font-size:0.95rem;">¡El bingo de tu familia!</p>
+
+        <label id="l-lang">Idioma / Language</label>
+        <select id="in-lang" onchange="translateUI()">
+            <option value="es-ES">🇪🇸 Español</option>
+            <option value="en-US">🇺🇸 English</option>
+            <option value="it-IT">🇮🇹 Italiano</option>
+            <option value="fr-FR">🇫🇷 Français</option>
+        </select>
+
+        <label id="l-names">Nombres (separados por coma)</label>
+        <textarea id="in-names" placeholder="Alessio, Juliette..." rows="3"></textarea>
+
+        <label id="l-cards">Cartillas por jugador</label>
+        <input type="number" id="in-cards" value="1" min="1" max="3">
+
+        <button id="b-start" onclick="initGame()">Generar Juego</button>
+    </div>
+
+    <div id="scr-game" class="screen">
+        <div class="card">
+            <h2 id="t-ball">🎱 Número</h2>
+            <div id="big-number">--</div>
+            <div class="balls-left" id="balls-left"></div>
+            <button class="btn-draw" id="b-draw" onclick="drawBall()">¡Cantar!</button>
+            <div class="main-grid" id="main-board"></div>
+            <button class="btn-reset" onclick="location.reload()">🔄 Reiniciar todo</button>
+        </div>
+        <div id="list-qrs"></div>
+    </div>
+
+    <div id="scr-player" class="screen">
+        <div class="card" style="background: linear-gradient(135deg, var(--primary), #3949ab); color: white; border-radius: 20px; margin-bottom: 20px;">
+            <h2 id="player-name-display" style="color: white;">Mis Cartillas</h2>
+        </div>
+        <div id="player-cards-box"></div>
+        <p style="text-align:center; color:#7f8c8d; font-size:0.85rem;" id="t-tap-hint">Toca los números para marcarlos</p>
+        <button onclick="window.location.hash=''; location.reload();" style="background:var(--accent); margin-top:20px;" id="b-exit">Salir del juego</button>
+    </div>
+
+</div>
+
+<!-- Footer -->
+<footer>
+    Creado en BCN con <span>❤️</span> por Mirko
+</footer>
+
+<!-- Error Modal -->
+<div id="error-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center;">
+    <div style="background:white; border-radius:20px; padding:36px 28px; max-width:300px; width:88%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.3); animation:bounceIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275);">
+        <div style="font-size:3rem; margin-bottom:10px;">⚠️</div>
+        <div id="error-title" style="font-family:'Fredoka One',cursive; font-size:1.6rem; color:#e53935; margin-bottom:8px;">¡Atención!</div>
+        <div id="error-msg" style="font-size:1rem; color:#555; margin-bottom:24px; line-height:1.4;"></div>
+        <button onclick="document.getElementById('error-overlay').style.display='none'" style="background:#e53935; width:auto; padding:12px 36px; border-radius:10px; font-size:1rem; font-family:'Nunito',sans-serif; font-weight:800; cursor:pointer; border:none; color:white;">OK</button>
+    </div>
+</div>
+
+<!-- Win Overlay -->
+<div id="win-overlay">
+    <div class="win-box">
+        <span class="win-emoji" id="win-emoji">🎉</span>
+        <div class="win-title" id="win-title">¡BINGO!</div>
+        <div class="win-subtitle" id="win-subtitle">¡Has ganado!</div>
+        <button class="win-close" onclick="closeWin()">OK</button>
+    </div>
+</div>
+
+<!-- Confetti Canvas -->
+<canvas id="confetti-canvas"></canvas>
+
+<script>
+    const i18n = {
+        'es-ES': {
+            title: "🎱 Bingo Master",
+            subtitle: "¡El bingo de tu familia!",
+            lang: "Idioma",
+            names: "Nombres (Separados por coma)",
+            cards: "Cartillas por jugador",
+            start: "Generar Juego",
+            ball: "🎱 Número",
+            draw: "¡Cantar!",
+            mycards: "Mis Cartillas",
+            tapHint: "Toca los números para marcarlos",
+            exit: "Salir del juego",
+            reset: "🔄 Reiniciar todo",
+            cardLabel: "Cartilla",
+            linea: "¡LÍNEA!",
+            lineaMsg: "¡Has completado una línea!",
+            bingo: "¡BINGO!",
+            bingoMsg: "¡Has ganado! ¡Cartilla completa!",
+            ok: "OK",
+            ballsLeft: "bolas restantes",
+            noNames: "Escribe al menos un nombre de jugador para poder generar el juego.",
+            errorTitle: "¡Faltan datos!",
+            lineaEmoji: "🎯",
+            bingoEmoji: "🏆"
+        },
+        'en-US': {
+            title: "🎱 Bingo Master",
+            subtitle: "The family bingo!",
+            lang: "Language",
+            names: "Player Names (Comma separated)",
+            cards: "Cards per player",
+            start: "Generate Game",
+            ball: "🎱 Ball",
+            draw: "Draw!",
+            mycards: "My Cards",
+            tapHint: "Tap numbers to mark them",
+            exit: "Leave game",
+            reset: "🔄 Restart all",
+            cardLabel: "Card",
+            linea: "LINE!",
+            lineaMsg: "You completed a line!",
+            bingo: "BINGO!",
+            bingoMsg: "You won! Full card!",
+            ok: "OK",
+            ballsLeft: "balls left",
+            noNames: "Please enter at least one player name to generate the game.",
+            errorTitle: "Missing data!",
+            lineaEmoji: "🎯",
+            bingoEmoji: "🏆"
+        },
+        'it-IT': {
+            title: "🎱 Bingo Maestro",
+            subtitle: "Il bingo di famiglia!",
+            lang: "Lingua",
+            names: "Nomi Giocatori (Virgola)",
+            cards: "Cartelle per persona",
+            start: "Genera Gioco",
+            ball: "🎱 Numero",
+            draw: "Estrai!",
+            mycards: "Le mie cartelle",
+            tapHint: "Tocca i numeri per segnarli",
+            exit: "Esci dal gioco",
+            reset: "🔄 Ricomincia tutto",
+            cardLabel: "Cartella",
+            linea: "TERNO!",
+            lineaMsg: "Hai completato una riga!",
+            bingo: "BINGO!",
+            bingoMsg: "Hai vinto! Cartella completa!",
+            ok: "OK",
+            ballsLeft: "palline rimanenti",
+            noNames: "Inserisci almeno un nome per generare il gioco.",
+            errorTitle: "Dati mancanti!",
+            lineaEmoji: "🎯",
+            bingoEmoji: "🏆"
+        },
+        'fr-FR': {
+            title: "🎱 Bingo Maître",
+            subtitle: "Le bingo en famille!",
+            lang: "Langue",
+            names: "Noms (Séparés par virgule)",
+            cards: "Cartons par joueur",
+            start: "Générer Jeu",
+            ball: "🎱 Boule",
+            draw: "Tirer!",
+            mycards: "Mes Cartons",
+            tapHint: "Touchez les numéros pour les marquer",
+            exit: "Quitter le jeu",
+            reset: "🔄 Recommencer",
+            cardLabel: "Carton",
+            linea: "QUINE!",
+            lineaMsg: "Vous avez complété une ligne!",
+            bingo: "BINGO!",
+            bingoMsg: "Vous avez gagné! Carton plein!",
+            ok: "OK",
+            ballsLeft: "boules restantes",
+            noNames: "Veuillez entrer au moins un nom de joueur pour générer le jeu.",
+            errorTitle: "Données manquantes!",
+            lineaEmoji: "🎯",
+            bingoEmoji: "🏆"
+        }
+    };
+
+    let currentLang = 'es-ES';
+    let bombo = [];
+    let confettiAnimId = null;
+    let playerLang = 'es-ES';
+
+    function showError(title, msg) {
+        document.getElementById('error-title').innerText = title;
+        document.getElementById('error-msg').innerText = msg;
+        const overlay = document.getElementById('error-overlay');
+        overlay.style.display = 'flex';
+    }
+
+    function translateUI() {
+        currentLang = document.getElementById('in-lang').value;
+        const t = i18n[currentLang];
+        document.getElementById('t-title').innerText = t.title;
+        document.getElementById('t-ball').innerText = t.ball;
+        document.getElementById('b-draw').innerText = t.draw;
+        document.getElementById('b-start').innerText = t.start;
+        document.getElementById('l-lang').innerText = t.lang;
+        document.getElementById('l-names').innerText = t.names;
+        document.getElementById('l-cards').innerText = t.cards;
+    }
+
+    function initGame() {
+        const rawNames = document.getElementById('in-names').value;
+        const names = rawNames.split(',').map(n => n.trim()).filter(n => n !== "");
+        const c = parseInt(document.getElementById('in-cards').value);
+        const t = i18n[currentLang];
+
+        if (names.length === 0) { showError(t.errorTitle, t.noNames); return; }
+
+        showScreen('scr-game');
+        bombo = Array.from({length: 90}, (_, i) => i + 1);
+        updateBallsLeft();
+
+        const board = document.getElementById('main-board');
+        board.innerHTML = '';
+        for (let i = 1; i <= 90; i++) board.innerHTML += `<div class="cell" id="c${i}">${i}</div>`;
+
+        const list = document.getElementById('list-qrs');
+        list.innerHTML = '';
+
+        names.forEach((name, index) => {
+            let playerDeck = [];
+            for (let k = 0; k < c; k++) playerDeck.push(genNumbers());
+
+            const row = document.createElement('div');
+            row.className = 'player-row';
+            const qid = `qrp${index}`;
+            row.innerHTML = `<div><b>${name}</b><br><small>${c} ${t.cardLabel}${c > 1 ? 's' : ''}</small></div>
+                             <div class="qr-box"><div id="${qid}"></div></div>`;
+            list.appendChild(row);
+
+            const data = btoa(unescape(encodeURIComponent(`${name}|${currentLang}|${playerDeck.map(n => n.join(',')).join('|')}`)));
+            const url = window.location.origin + window.location.pathname + "#" + data;
+
+            new QRCode(document.getElementById(qid), { text: url, width: 100, height: 100 });
+        });
+    }
+
+    function genNumbers() {
+        let n = [];
+        while (n.length < 15) {
+            let r = Math.floor(Math.random() * 90) + 1;
+            if (!n.includes(r)) n.push(r);
+        }
+        return n.sort((a, b) => a - b);
+    }
+
+    function updateBallsLeft() {
+        const el = document.getElementById('balls-left');
+        if (el) {
+            const t = i18n[currentLang];
+            el.innerText = `${bombo.length} ${t.ballsLeft}`;
+        }
+    }
+
+    // Números escritos en palabras para los 4 idiomas — evita errores de pronunciación del TTS
+    const numberWords = {
+        'es-ES': {
+            1:'uno',2:'dos',3:'tres',4:'cuatro',5:'cinco',6:'seis',7:'siete',8:'ocho',9:'nueve',10:'diez',
+            11:'once',12:'doce',13:'trece',14:'catorce',15:'quince',16:'dieciséis',17:'diecisiete',18:'dieciocho',19:'diecinueve',20:'veinte',
+            21:'veintiuno',22:'veintidós',23:'veintitrés',24:'veinticuatro',25:'veinticinco',26:'veintiséis',27:'veintisiete',28:'veintiocho',29:'veintinueve',30:'treinta',
+            31:'treinta y uno',32:'treinta y dos',33:'treinta y tres',34:'treinta y cuatro',35:'treinta y cinco',36:'treinta y seis',37:'treinta y siete',38:'treinta y ocho',39:'treinta y nueve',40:'cuarenta',
+            41:'cuarenta y uno',42:'cuarenta y dos',43:'cuarenta y tres',44:'cuarenta y cuatro',45:'cuarenta y cinco',46:'cuarenta y seis',47:'cuarenta y siete',48:'cuarenta y ocho',49:'cuarenta y nueve',50:'cincuenta',
+            51:'cincuenta y uno',52:'cincuenta y dos',53:'cincuenta y tres',54:'cincuenta y cuatro',55:'cincuenta y cinco',56:'cincuenta y seis',57:'cincuenta y siete',58:'cincuenta y ocho',59:'cincuenta y nueve',60:'sesenta',
+            61:'sesenta y uno',62:'sesenta y dos',63:'sesenta y tres',64:'sesenta y cuatro',65:'sesenta y cinco',66:'sesenta y seis',67:'sesenta y siete',68:'sesenta y ocho',69:'sesenta y nueve',70:'setenta',
+            71:'setenta y uno',72:'setenta y dos',73:'setenta y tres',74:'setenta y cuatro',75:'setenta y cinco',76:'setenta y seis',77:'setenta y siete',78:'setenta y ocho',79:'setenta y nueve',80:'ochenta',
+            81:'ochenta y uno',82:'ochenta y dos',83:'ochenta y tres',84:'ochenta y cuatro',85:'ochenta y cinco',86:'ochenta y seis',87:'ochenta y siete',88:'ochenta y ocho',89:'ochenta y nueve',90:'noventa'
+        },
+        'it-IT': {
+            1:'uno',2:'due',3:'tre',4:'quattro',5:'cinque',6:'sei',7:'sette',8:'otto',9:'nove',10:'dieci',
+            11:'undici',12:'dodici',13:'tredici',14:'quattordici',15:'quindici',16:'sedici',17:'diciassette',18:'diciotto',19:'diciannove',20:'venti',
+            21:'ventuno',22:'ventidue',23:'ventitré',24:'ventiquattro',25:'venticinque',26:'ventisei',27:'ventisette',28:'ventotto',29:'ventinove',30:'trenta',
+            31:'trentuno',32:'trentadue',33:'trentatré',34:'trentaquattro',35:'trentacinque',36:'trentasei',37:'trentasette',38:'trentotto',39:'trentanove',40:'quaranta',
+            41:'quarantuno',42:'quarantadue',43:'quarantatré',44:'quarantaquattro',45:'quarantacinque',46:'quarantasei',47:'quarantasette',48:'quarantotto',49:'quarantanove',50:'cinquanta',
+            51:'cinquantuno',52:'cinquantadue',53:'cinquantatré',54:'cinquantaquattro',55:'cinquantacinque',56:'cinquantasei',57:'cinquantasette',58:'cinquantotto',59:'cinquantanove',60:'sessanta',
+            61:'sessantuno',62:'sessantadue',63:'sessantatré',64:'sessantaquattro',65:'sessantacinque',66:'sessantasei',67:'sessantasette',68:'sessantotto',69:'sessantanove',70:'settanta',
+            71:'settantuno',72:'settantadue',73:'settantatré',74:'settantaquattro',75:'settantacinque',76:'settantasei',77:'settantasette',78:'settantotto',79:'settantanove',80:'ottanta',
+            81:'ottantuno',82:'ottantadue',83:'ottantatré',84:'ottantaquattro',85:'ottantacinque',86:'ottantasei',87:'ottantasette',88:'ottantotto',89:'ottantanove',90:'novanta'
+        },
+        'en-US': {
+            1:'one',2:'two',3:'three',4:'four',5:'five',6:'six',7:'seven',8:'eight',9:'nine',10:'ten',
+            11:'eleven',12:'twelve',13:'thirteen',14:'fourteen',15:'fifteen',16:'sixteen',17:'seventeen',18:'eighteen',19:'nineteen',20:'twenty',
+            21:'twenty one',22:'twenty two',23:'twenty three',24:'twenty four',25:'twenty five',26:'twenty six',27:'twenty seven',28:'twenty eight',29:'twenty nine',30:'thirty',
+            31:'thirty one',32:'thirty two',33:'thirty three',34:'thirty four',35:'thirty five',36:'thirty six',37:'thirty seven',38:'thirty eight',39:'thirty nine',40:'forty',
+            41:'forty one',42:'forty two',43:'forty three',44:'forty four',45:'forty five',46:'forty six',47:'forty seven',48:'forty eight',49:'forty nine',50:'fifty',
+            51:'fifty one',52:'fifty two',53:'fifty three',54:'fifty four',55:'fifty five',56:'fifty six',57:'fifty seven',58:'fifty eight',59:'fifty nine',60:'sixty',
+            61:'sixty one',62:'sixty two',63:'sixty three',64:'sixty four',65:'sixty five',66:'sixty six',67:'sixty seven',68:'sixty eight',69:'sixty nine',70:'seventy',
+            71:'seventy one',72:'seventy two',73:'seventy three',74:'seventy four',75:'seventy five',76:'seventy six',77:'seventy seven',78:'seventy eight',79:'seventy nine',80:'eighty',
+            81:'eighty one',82:'eighty two',83:'eighty three',84:'eighty four',85:'eighty five',86:'eighty six',87:'eighty seven',88:'eighty eight',89:'eighty nine',90:'ninety'
+        },
+        'fr-FR': {
+            1:'un',2:'deux',3:'trois',4:'quatre',5:'cinq',6:'six',7:'sept',8:'huit',9:'neuf',10:'dix',
+            11:'onze',12:'douze',13:'treize',14:'quatorze',15:'quinze',16:'seize',17:'dix-sept',18:'dix-huit',19:'dix-neuf',20:'vingt',
+            21:'vingt et un',22:'vingt-deux',23:'vingt-trois',24:'vingt-quatre',25:'vingt-cinq',26:'vingt-six',27:'vingt-sept',28:'vingt-huit',29:'vingt-neuf',30:'trente',
+            31:'trente et un',32:'trente-deux',33:'trente-trois',34:'trente-quatre',35:'trente-cinq',36:'trente-six',37:'trente-sept',38:'trente-huit',39:'trente-neuf',40:'quarante',
+            41:'quarante et un',42:'quarante-deux',43:'quarante-trois',44:'quarante-quatre',45:'quarante-cinq',46:'quarante-six',47:'quarante-sept',48:'quarante-huit',49:'quarante-neuf',50:'cinquante',
+            51:'cinquante et un',52:'cinquante-deux',53:'cinquante-trois',54:'cinquante-quatre',55:'cinquante-cinq',56:'cinquante-six',57:'cinquante-sept',58:'cinquante-huit',59:'cinquante-neuf',60:'soixante',
+            61:'soixante et un',62:'soixante-deux',63:'soixante-trois',64:'soixante-quatre',65:'soixante-cinq',66:'soixante-six',67:'soixante-sept',68:'soixante-huit',69:'soixante-neuf',70:'soixante-dix',
+            71:'soixante et onze',72:'soixante-douze',73:'soixante-treize',74:'soixante-quatorze',75:'soixante-quinze',76:'soixante-seize',77:'soixante-dix-sept',78:'soixante-dix-huit',79:'soixante-dix-neuf',80:'quatre-vingts',
+            81:'quatre-vingt-un',82:'quatre-vingt-deux',83:'quatre-vingt-trois',84:'quatre-vingt-quatre',85:'quatre-vingt-cinq',86:'quatre-vingt-six',87:'quatre-vingt-sept',88:'quatre-vingt-huit',89:'quatre-vingt-neuf',90:'quatre-vingt-dix'
+        }
+    };
+
+    // Prefijos de idioma para buscar la voz correcta
+    const langPrefix = {
+        'es-ES': ['es-ES', 'es'],
+        'it-IT': ['it-IT', 'it'],
+        'en-US': ['en-US', 'en-GB', 'en'],
+        'fr-FR': ['fr-FR', 'fr']
+    };
+
+    let voiceCache = {};
+
+    function getVoiceForLang(lang) {
+        if (voiceCache[lang]) return voiceCache[lang];
+        const voices = window.speechSynthesis.getVoices();
+        const prefixes = langPrefix[lang] || [lang];
+        for (const prefix of prefixes) {
+            const match = voices.find(v => v.lang === prefix) ||
+                          voices.find(v => v.lang.startsWith(prefix.split('-')[0]));
+            if (match) { voiceCache[lang] = match; return match; }
+        }
+        return null;
+    }
+
+    function speakNumber(num, lang) {
+        window.speechSynthesis.cancel();
+        const text = (numberWords[lang] && numberWords[lang][num]) ? numberWords[lang][num] : num.toString();
+
+        const doSpeak = () => {
+            const msg = new SpeechSynthesisUtterance();
+            msg.text = text;
+            msg.lang = lang;
+            msg.rate = 0.82;
+            msg.pitch = 1;
+            const voice = getVoiceForLang(lang);
+            if (voice) msg.voice = voice;
+            window.speechSynthesis.speak(msg);
+        };
+
+        // Las voces pueden no estar cargadas aún — esperamos si hace falta
+        if (window.speechSynthesis.getVoices().length === 0) {
+            window.speechSynthesis.onvoiceschanged = () => { voiceCache = {}; doSpeak(); };
+        } else {
+            setTimeout(doSpeak, 120);
+        }
+    }
+
+    function drawBall() {
+        if (bombo.length === 0) return;
+        const idx = Math.floor(Math.random() * bombo.length);
+        const num = bombo.splice(idx, 1)[0];
+
+        const el = document.getElementById('big-number');
+        el.innerText = num;
+        el.classList.remove('pop');
+        void el.offsetWidth; // reflow
+        el.classList.add('pop');
+        setTimeout(() => el.classList.remove('pop'), 300);
+
+        document.getElementById(`c${num}`).classList.add('extracted');
+        updateBallsLeft();
+
+        speakNumber(num, currentLang);
+    }
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    /* ===================== PLAYER SCREEN ===================== */
+    function checkHash() {
+        const hash = window.location.hash.substring(1);
+        if (!hash || hash.length < 10) return;
+
+        try {
+            const decoded = decodeURIComponent(escape(atob(hash))).split('|');
+            const name = decoded[0];
+            const lang = decoded[1];
+            playerLang = lang;
+            const cards = decoded.slice(2);
+            const t = i18n[lang];
+
+            showScreen('scr-player');
+            document.getElementById('player-name-display').innerText = `${name} — ${t.mycards}`;
+            document.getElementById('t-tap-hint').innerText = t.tapHint;
+            document.getElementById('b-exit').innerText = t.exit;
+
+            const container = document.getElementById('player-cards-box');
+            container.innerHTML = '';
+
+            cards.forEach((c, i) => {
+                const nums = c.split(',');
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'mobile-card';
+                cardDiv.dataset.total = nums.length;
+                cardDiv.dataset.marked = 0;
+
+                let html = `<h3>${t.cardLabel} ${i + 1}</h3><div class="grid-5">`;
+                nums.forEach(num => {
+                    html += `<div class="num-btn" data-num="${num}" onclick="toggleNum(this, ${i})">${num}</div>`;
+                });
+                cardDiv.innerHTML = html + `</div>`;
+                container.appendChild(cardDiv);
+            });
+
+        } catch (e) {
+            console.error("Error al procesar QR", e);
+        }
+    }
+
+    function toggleNum(btn, cardIndex) {
+        btn.classList.toggle('marked');
+        checkWinConditions(cardIndex);
+    }
+
+    function checkWinConditions(cardIndex) {
+        const cards = document.querySelectorAll('.mobile-card');
+        const card = cards[cardIndex];
+        const allBtns = Array.from(card.querySelectorAll('.num-btn'));
+        const rows = [];
+
+        // Split 15 numbers into 3 rows of 5
+        for (let r = 0; r < 3; r++) {
+            rows.push(allBtns.slice(r * 5, r * 5 + 5));
+        }
+
+        // Check full card (BINGO)
+        const totalMarked = allBtns.filter(b => b.classList.contains('marked')).length;
+        if (totalMarked === allBtns.length) {
+            showWin('bingo', playerLang);
+            return;
+        }
+
+        // Check each row (LÍNEA) — only trigger once per row completion
+        rows.forEach(row => {
+            const allMarked = row.every(b => b.classList.contains('marked'));
+            const rowKey = 'row_' + cardIndex + '_' + row[0].dataset.num;
+            if (allMarked && !card.dataset[rowKey]) {
+                card.dataset[rowKey] = '1';
+                showWin('linea', playerLang);
+            }
+        });
+    }
+
+    function showWin(type, lang) {
+        const t = i18n[lang];
+        const overlay = document.getElementById('win-overlay');
+        document.getElementById('win-emoji').innerText = type === 'bingo' ? t.bingoEmoji : t.lineaEmoji;
+        document.getElementById('win-title').innerText = type === 'bingo' ? t.bingo : t.linea;
+        document.getElementById('win-subtitle').innerText = type === 'bingo' ? t.bingoMsg : t.lineaMsg;
+        overlay.classList.add('show');
+        startConfetti();
+    }
+
+    function closeWin() {
+        document.getElementById('win-overlay').classList.remove('show');
+        stopConfetti();
+    }
+
+    /* ===================== CONFETTI ===================== */
+    function startConfetti() {
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const colors = ['#e53935', '#1a237e', '#f9a825', '#2e7d32', '#7b1fa2', '#0288d1', '#ff6f00'];
+        const particles = [];
+
+        for (let i = 0; i < 180; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * -canvas.height,
+                w: Math.random() * 14 + 6,
+                h: Math.random() * 7 + 4,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                rotation: Math.random() * 360,
+                speed: Math.random() * 3 + 2,
+                rotSpeed: (Math.random() - 0.5) * 6,
+                swing: Math.random() * 2 - 1
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let allGone = true;
+            particles.forEach(p => {
+                p.y += p.speed;
+                p.x += p.swing;
+                p.rotation += p.rotSpeed;
+                if (p.y < canvas.height + 20) allGone = false;
+
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate((p.rotation * Math.PI) / 180);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+                ctx.restore();
+            });
+
+            if (!allGone) {
+                confettiAnimId = requestAnimationFrame(draw);
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+        draw();
+
+        // Auto stop after 5s
+        setTimeout(() => stopConfetti(), 5000);
+    }
+
+    function stopConfetti() {
+        if (confettiAnimId) {
+            cancelAnimationFrame(confettiAnimId);
+            confettiAnimId = null;
+        }
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    window.onload = () => { translateUI(); checkHash(); };
+    window.onhashchange = checkHash;
+    window.onresize = () => {
+        const canvas = document.getElementById('confetti-canvas');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    };
+</script>
+</body>
+</html>
