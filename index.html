@@ -324,10 +324,10 @@
 <div class="page-wrapper">
 
     <div id="scr-setup" class="screen active card">
-        <h1 id="t-title">🧑‍🧑‍🧒‍🧒 Bingo digital</h1>
+        <h1 id="t-title">🎱 Bingo Digital</h1>
         <p style="color:#7986cb; margin: 0 0 16px; font-size:0.95rem;">¡El bingo de tu familia!</p>
 
-        <label id="l-lang">Elige el idioma/label>
+        <label id="l-lang">Idioma / Language</label>
         <select id="in-lang" onchange="translateUI()">
             <option value="es-ES">🇪🇸 Español</option>
             <option value="en-US">🇺🇸 English</option>
@@ -338,10 +338,10 @@
         <label id="l-names">Nombres (separados por coma)</label>
         <textarea id="in-names" placeholder="Alessio, Juliette..." rows="3"></textarea>
 
-        <label id="l-cards">Cuantas cartillas necesitas?</label>
+        <label id="l-cards">Cartillas por jugador</label>
         <input type="number" id="in-cards" value="1" min="1" max="3">
 
-        <button id="b-start" onclick="initGame()">Genera cartillas QR</button>
+        <button id="b-start" onclick="initGame()">Generar Juego</button>
     </div>
 
     <div id="scr-game" class="screen">
@@ -351,7 +351,7 @@
             <div class="balls-left" id="balls-left"></div>
             <button class="btn-draw" id="b-draw" onclick="drawBall()">¡Cantar!</button>
             <div class="main-grid" id="main-board"></div>
-            <button class="btn-reset" onclick="location.reload()">🔄 Reinicia el juego</button>
+            <button class="btn-reset" onclick="location.reload()">🔄 Reiniciar todo</button>
         </div>
         <div id="list-qrs"></div>
     </div>
@@ -398,7 +398,7 @@
 <script>
     const i18n = {
         'es-ES': {
-            title: "🧑‍🧑‍🧒‍🧒 Bingo Digital",
+            title: "🎱 Bingo Master",
             subtitle: "¡El bingo de tu familia!",
             lang: "Idioma",
             names: "Nombres (Separados por coma)",
@@ -486,7 +486,7 @@
             exit: "Quitter le jeu",
             reset: "🔄 Recommencer",
             cardLabel: "Carton",
-            linea: "LIGNE!",
+            linea: "QUINE!",
             lineaMsg: "Vous avez complété une ligne!",
             bingo: "BINGO!",
             bingoMsg: "Vous avez gagné! Carton plein!",
